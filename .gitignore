@@ -28,3 +28,7 @@ scraper/static/profile_pics/
 
 # Mac-specific
 .DS_Store
+
+scraper/reddit_scraper.py
+
+
