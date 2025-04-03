@@ -3,6 +3,11 @@ import json
 import os
 from flask_cors import CORS
 from flask import request
+from supabase import create_client, Client
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # 🔥 use service role key to allow inserts
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 secret_token = os.getenv("API_SECRET_TOKEN")
 valid_credentials = {
@@ -18,8 +23,6 @@ CORS(app, resources={r"/api/*": {"origins": "https://recruitment-dashboard-ten.v
      allow_headers=["Content-Type", "Authorization"])
 
 
-
-# ✅ Protect this route with your token
 @app.route("/api/update", methods=["POST"])
 def update_profiles():
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -30,57 +33,32 @@ def update_profiles():
     if not isinstance(new_data, list):
         return jsonify({"error": "Invalid payload"}), 400
 
+    added = 0
+    for item in new_data:
+        # check if profile_url exists already
+        existing = supabase.table("profiles").select("id").eq("profile_url", item["profile_url"]).execute()
+        if not existing.data:
+            supabase.table("profiles").insert(item).execute()
+            added += 1
+
+    return jsonify({"status": "success", "added": added})
+
+
+
+
+@app.route("/api/profiles")
+def get_profiles():
+    auth = request.headers.get('Authorization')
+    if auth != f"Bearer {secret_token}":
+        return jsonify({"error": "Unauthorized"}), 401
+
     try:
-        # Load existing data
-        if os.path.exists(OUTPUT_FILE):
-            with open(OUTPUT_FILE, "r") as f:
-                existing = json.load(f)
-        else:
-            existing = []
-
-        # Filter out duplicates
-        existing_urls = {d["profile_url"] for d in existing}
-        combined = existing + [item for item in new_data if item["profile_url"] not in existing_urls]
-
-        # Save back to file
-        with open(OUTPUT_FILE, "w") as f:
-            json.dump(combined, f, indent=2)
-
-        return jsonify({"status": "success", "added": len(combined) - len(existing)})
-
+        res = supabase.table("profiles").select("*").order("created_at", desc=True).limit(100).execute()
+        return jsonify(res.data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/profiles')
-def get_profiles():
-    auth = request.headers.get('Authorization')
-    if auth != f"Bearer {secret_token}":
-        print("Unauthorized access attempt")
-        return jsonify({"error": "Unauthorized"}), 401
-    try:
-        file_path = 'scraper/output.json'
-        if not os.path.exists(file_path):
-            print("⚠️ output.json not found.")
-            return jsonify([])
-
-        with open(file_path, 'r') as f:
-            content = f.read().strip()
-            if not content:
-                print("⚠️ output.json is empty.")
-                return jsonify([])
-
-            try:
-                data = json.loads(content)
-            except json.JSONDecodeError as e:
-                print(f"⚠️ JSONDecodeError: {e}")
-                return jsonify([])
-
-        return jsonify(data)
-
-    except Exception as e:
-        print(f"❌ Unexpected error in /api/profiles: {e}")
-        return jsonify([])
 
 @app.route('/static/profile_pics/<path:filename>')
 def serve_profile_pic(filename):
