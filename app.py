@@ -13,7 +13,9 @@ valid_credentials = {
 
 app = Flask(__name__, static_folder='static')
 OUTPUT_FILE = "scraper/output.json"
-CORS(app, origins=["https://recruitment-dashboard-ten.vercel.app/"])
+CORS(app, origins=["https://recruitment-dashboard-ten.vercel.app"],
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"])
 
 
 
