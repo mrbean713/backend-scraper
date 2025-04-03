@@ -1,0 +1,30 @@
+# Python cache / build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# VSCode settings (optional)
+.vscode/
+
+# dotenv / credentials
+.env
+.env.local
+
+# Scraped data (generated at runtime)
+scraper/output.json
+scraper/static/profile_pics/
+
+# Logs
+*.log
+
+# Mac-specific
+.DS_Store
