@@ -20,7 +20,7 @@ venv.bak/
 .env.local
 
 # Scraped data (generated at runtime)
-scraper/output.json
+
 scraper/static/profile_pics/
 
 # Logs
