@@ -13,7 +13,7 @@ valid_credentials = {
 
 app = Flask(__name__, static_folder='static')
 OUTPUT_FILE = "scraper/output.json"
-CORS(app, origins=["https://recruitment-dashboard-ten.vercel.app"],
+CORS(app, resources={r"/api/*": {"origins": "https://recruitment-dashboard-ten.vercel.app"}},
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"])
 
@@ -88,6 +88,7 @@ def serve_profile_pic(filename):
 
 @app.route("/api/login", methods=["POST"])
 def login():
+    print("🛂 Login route hit")
     body = request.json
     agency = body.get("agency")
     password = body.get("password")
