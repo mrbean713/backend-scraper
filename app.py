@@ -12,7 +12,43 @@ valid_credentials = {
 
 
 app = Flask(__name__, static_folder='static')
+OUTPUT_FILE = "scraper/output.json"
 CORS(app, origins=["https://recruitment-dashboard-ten.vercel.app/"])
+
+
+
+# ✅ Protect this route with your token
+@app.route("/api/update", methods=["POST"])
+def update_profiles():
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if token != os.getenv("API_SECRET_TOKEN"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    new_data = request.json
+    if not isinstance(new_data, list):
+        return jsonify({"error": "Invalid payload"}), 400
+
+    try:
+        # Load existing data
+        if os.path.exists(OUTPUT_FILE):
+            with open(OUTPUT_FILE, "r") as f:
+                existing = json.load(f)
+        else:
+            existing = []
+
+        # Filter out duplicates
+        existing_urls = {d["profile_url"] for d in existing}
+        combined = existing + [item for item in new_data if item["profile_url"] not in existing_urls]
+
+        # Save back to file
+        with open(OUTPUT_FILE, "w") as f:
+            json.dump(combined, f, indent=2)
+
+        return jsonify({"status": "success", "added": len(combined) - len(existing)})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/profiles')
 def get_profiles():
@@ -56,6 +92,11 @@ def login():
     if valid_credentials.get(agency) == password:
         return jsonify({"status": "ok"})
     return jsonify({"error": "invalid credentials"}), 401
+
+@app.route('/')
+def home():
+    return '✅ Backend is live!'
+
 
 
 if __name__ == '__main__':
